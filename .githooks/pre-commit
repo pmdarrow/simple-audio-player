@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Run before every commit. Rejects the commit if any staged C/C++ file would be
+# reformatted by clang-format.
+#
+# To enable after cloning:   git config core.hooksPath .githooks
+# To bypass once:             git commit --no-verify
+# To auto-fix:                cmake --build build --target format
+
+set -euo pipefail
+
+# Prefer a clang-format on PATH; fall back to brew llvm's keg-only bin dir.
+if ! command -v clang-format >/dev/null 2>&1; then
+    export PATH="/opt/homebrew/opt/llvm/bin:/usr/local/opt/llvm/bin:$PATH"
+fi
+
+if ! command -v clang-format >/dev/null 2>&1; then
+    echo "pre-commit: clang-format not found on PATH." >&2
+    echo "            Install with: brew install llvm" >&2
+    echo "            (or skip: git commit --no-verify)" >&2
+    exit 1
+fi
+
+files=$(
+    git diff --cached --name-only --diff-filter=ACMR \
+        -- '*.cpp' '*.cc' '*.cxx' '*.c' '*.hpp' '*.h' '*.hh' '*.hxx' \
+        || true
+)
+
+[ -z "$files" ] && exit 0
+
+bad=""
+while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    if ! clang-format --dry-run -Werror "$f" >/dev/null 2>&1; then
+        bad="$bad  - $f"$'\n'
+    fi
+done <<< "$files"
+
+if [ -n "$bad" ]; then
+    echo "pre-commit: clang-format would reformat:" >&2
+    printf '%s' "$bad" >&2
+    echo "" >&2
+    echo "Fix with:  cmake --build build --target format" >&2
+    echo "    (or:   clang-format -i <files>)" >&2
+    exit 1
+fi

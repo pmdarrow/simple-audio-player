@@ -1,0 +1,77 @@
+---
+# Narrower-than-typical default, tuned for a JUCE 8 audio plugin on LLVM 22.x.
+#
+# Disabled checks fall into three categories:
+#
+# 1. Temporary workarounds for LLVM 22.x bugs that crash clang-tidy on JUCE
+#    template code. Expected to re-enable on a future LLVM release:
+#      - bugprone-pointer-arithmetic-on-polymorphic-object
+#      - cppcoreguidelines-* (whole group, matcher crashes on juce_Ranges.h)
+#      - cert-*             (whole group, same reason)
+#      - modernize-use-ranges
+#
+# 2. JUCE idioms that the checks misread as bugs:
+#      - misc-multiple-inheritance            (Component + Timer pattern)
+#      - misc-override-with-different-visibility (JUCE overrides protected as public)
+#      - portability-avoid-pragma-once        (#pragma once is universal in 2026)
+#
+# 3. Stylistic / opinion checks that produce noise in a small plugin:
+#      - bugprone-easily-swappable-parameters
+#      - readability-magic-numbers, readability-identifier-length,
+#        readability-implicit-bool-conversion, readability-braces-around-statements,
+#        readability-function-cognitive-complexity,
+#        readability-named-parameter, readability-uppercase-literal-suffix
+#      - misc-include-cleaner, misc-no-recursion,
+#        misc-non-private-member-variables-in-classes
+#      - modernize-avoid-c-arrays, modernize-use-nodiscard,
+#        modernize-use-trailing-return-type
+#      - bugprone-exception-escape
+#
+# Plus two clang-analyzer path-sensitive checks that report primary diagnostics
+# inside juce_AudioSampleBuffer.h. HeaderFilterRegex suppresses 13k+ unrelated
+# findings in JUCE but does NOT apply to clang-analyzer output (long-standing
+# clang-tidy bug), so these two are disabled project-wide. For real path
+# analysis coverage, run scan-build separately — it handles third-party
+# suppression properly:
+#      - clang-analyzer-core.NullDereference
+#      - clang-analyzer-security.ArrayBound
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  concurrency-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-exception-escape,
+  -bugprone-pointer-arithmetic-on-polymorphic-object,
+  -clang-analyzer-core.NullDereference,
+  -clang-analyzer-security.ArrayBound,
+  -misc-include-cleaner,
+  -misc-multiple-inheritance,
+  -misc-no-recursion,
+  -misc-non-private-member-variables-in-classes,
+  -misc-override-with-different-visibility,
+  -modernize-avoid-c-arrays,
+  -modernize-use-nodiscard,
+  -modernize-use-ranges,
+  -modernize-use-trailing-return-type,
+  -portability-avoid-pragma-once,
+  -readability-braces-around-statements,
+  -readability-function-cognitive-complexity,
+  -readability-identifier-length,
+  -readability-implicit-bool-conversion,
+  -readability-magic-numbers,
+  -readability-named-parameter,
+  -readability-uppercase-literal-suffix
+
+WarningsAsErrors: '*'
+
+# Only report diagnostics in our own headers — JUCE headers are parsed as part
+# of each TU but we don't want to be told how to rewrite JUCE.
+HeaderFilterRegex: '.*/Source/.*'
+
+FormatStyle: file
