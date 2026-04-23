@@ -1,5 +1,7 @@
 #include "PlaylistComponents.h"
 
+#include <cmath>
+
 #include "TrackPlayerTheme.h"
 
 namespace {
@@ -49,18 +51,29 @@ void PlaylistRowComponent::paint(juce::Graphics& g) {
       true
   );
 
-  // Green dot marks the row currently being played by the transport,
+  // Animated bars mark the row currently being played by the transport,
   // independent of selection.
   if (rowNumber == processor.getCurrentTrackIndex() && processor.isPlaying()) {
-    constexpr float kDiameter = 8.0f;
-    const juce::Rectangle<float> dot(
-        static_cast<float>(getWidth()) - 18.0f,
-        (static_cast<float>(getHeight()) - kDiameter) * 0.5f,
-        kDiameter,
-        kDiameter
-    );
+    constexpr float kBarW = 3.0f;
+    constexpr float kBarGap = 2.0f;
+    constexpr float kMinBarH = 4.0f;
+    constexpr float kMaxBarH = 13.0f;
+    constexpr float kIndicatorW = (kBarW * 3.0f) + (kBarGap * 2.0f);
+
+    const double t = juce::Time::getMillisecondCounterHiRes() * 0.009;
+    const float x0 = static_cast<float>(getWidth()) - 10.0f - kIndicatorW;
+    const float centreY = static_cast<float>(getHeight()) * 0.5f;
+
     g.setColour(track_player_ui::kPlayingGreen);
-    g.fillEllipse(dot);
+
+    for (int i = 0; i < 3; ++i) {
+      const float phase = static_cast<float>(t) + (static_cast<float>(i) * 1.9f);
+      const float amount = 0.5f + (0.5f * static_cast<float>(std::sin(phase)));
+      const float barH = kMinBarH + (amount * (kMaxBarH - kMinBarH));
+      const float x = x0 + (static_cast<float>(i) * (kBarW + kBarGap));
+      const auto bar = juce::Rectangle<float>(x, centreY - (barH * 0.5f), kBarW, barH);
+      g.fillRoundedRectangle(bar, kBarW * 0.5f);
+    }
   }
 }
 

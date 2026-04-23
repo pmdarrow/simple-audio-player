@@ -105,9 +105,9 @@ TrackPlayerEditor::TrackPlayerEditor(TrackPlayerProcessor& p)
   if (player.getCurrentTrackIndex() >= 0) playlistBox.selectRow(player.getCurrentTrackIndex());
 
   refresh();
-  // 15 Hz is smooth enough for a mm:ss readout and a slider thumb tracking
-  // playback, while keeping the editor effectively idle between frames.
-  startTimerHz(15);
+  // 30 Hz keeps the playing-row indicator smooth while still leaving the
+  // editor effectively idle between frames.
+  startTimerHz(30);
 }
 
 TrackPlayerEditor::~TrackPlayerEditor() {
@@ -226,9 +226,9 @@ void TrackPlayerEditor::refresh() {
     if (playlistBox.getSelectedRow() >= numTracks) playlistBox.deselectAllRows();
   }
 
-  // Playing state or current-track index changed → the green dot needs to
-  // move (or appear / disappear), so force a repaint of visible rows.
-  if (currentIndex != lastCurrentIndex || playing != lastIsPlaying) {
+  // Playing state/current-track changes move the indicator; while playing,
+  // repaint visible rows at the timer cadence so the small bars animate.
+  if (currentIndex != lastCurrentIndex || playing != lastIsPlaying || playing) {
     lastCurrentIndex = currentIndex;
     lastIsPlaying = playing;
     playlistBox.repaint();
