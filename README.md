@@ -1,11 +1,13 @@
 # Simple Audio Player
 
 An Audio Unit instrument plugin for macOS that plays a playlist of supported
-audio files, with a standalone app target for development. Built with
+audio files. Built with
 [JUCE](https://juce.com/) 8 and CMake.
 
 Inspired by [Simple Audio Player Swift](https://github.com/pmdarrow/simple-audio-player-swift),
 but written as an AU instrument plugin with C++ & JUCE.
+
+![Simple Audio Player plugin UI](docs/screenshot.png)
 
 Features:
 
@@ -16,21 +18,7 @@ Features:
 - Auto-advances to the next track at end-of-file.
 - Playlist and current track persist in the plugin's host state.
 
-## Requirements
-
-- macOS 10.13 or later (Intel or Apple Silicon)
-- [CMake](https://cmake.org/) 3.22 or later
-- [Ninja](https://ninja-build.org/) (`brew install ninja`)
-- Xcode command-line tools (`xcode-select --install`) — a full Xcode install is
-  recommended so the AU can be validated with `auval`
-- Git (used by CMake's `FetchContent` to pull JUCE)
-
-Optional, for dev tooling:
-
-- `brew install llvm` — provides `clang-format` and `clang-tidy` used by the
-  `format` / `format-check` / `tidy` CMake targets and the git pre-commit hook.
-
-## Installing a release
+## Install
 
 Run the installer directly from the repository:
 
@@ -47,14 +35,44 @@ The installer downloads the latest macOS release zip from
 ```
 
 Because this is a system-wide install, macOS will ask for an administrator
-password. The installer also removes quarantine metadata from the installed
-component, ad-hoc signs it, and refreshes the Audio Unit registrar. Restart your
+password. Restart your
 DAW or rescan Audio Units after installing.
 
-This release flow is intended for trusted manual installation. The component is
-not Developer ID signed or notarized.
+The component is
+not signed or notarized as I'm not really interested in paying to be a part of the Apple Developer Program.
 
-## Building
+## Using the plugin
+
+1. Launch an AU-compatible host (Logic Pro, GarageBand, Ableton Live 11+,
+   Reaper, AUM, …).
+2. Create a new instrument track and choose **Peter Darrow → Simple Audio Player**.
+3. Click **Add** to pick one or more supported audio files (from anywhere on
+   disk) and drop them into the playlist. **Remove** deletes the selected track.
+4. Single-click a row to select it. Double-click a row (or use the round play
+   button in the transport row) to start playback. The progress slider scrubs
+   the current track; seeks commit on release. Playback auto-advances to the
+   next track at end-of-file.
+
+The playlist and the currently-loaded track are persisted in the plugin's host
+state, so reopening a session restores everything.
+
+## Development
+
+### Requirements
+
+- macOS 10.13 or later (Intel or Apple Silicon)
+- [CMake](https://cmake.org/) 3.22 or later
+- [Ninja](https://ninja-build.org/) (`brew install ninja`)
+- Xcode command-line tools (`xcode-select --install`) — a full Xcode install is
+  recommended so the AU can be validated with `auval`
+- Git (used by CMake's `FetchContent` to pull JUCE)
+
+Optional, for dev tooling:
+
+- `brew install llvm` — provides `clang-format` and `clang-tidy` used by the
+  `format` / `format-check` / `tidy` CMake targets and the git pre-commit hook.
+
+### Building
 
 From the project root:
 
@@ -106,32 +124,16 @@ auval -v aumu Sapl Pdar
 four-character code and `Pdar` is the manufacturer code — both defined in
 [CMakeLists.txt](CMakeLists.txt).
 
-## Using the plugin
-
-1. Launch an AU-compatible host (Logic Pro, GarageBand, Ableton Live 11+,
-   Reaper, AUM, …).
-2. Create a new instrument track and choose **Peter Darrow → Simple Audio Player**.
-3. Click **Add** to pick one or more supported audio files (from anywhere on
-   disk) and drop them into the playlist. **Remove** deletes the selected track.
-4. Single-click a row to select it. Double-click a row (or use the round play
-   button in the transport row) to start playback. The progress slider scrubs
-   the current track; seeks commit on release. Playback auto-advances to the
-   next track at end-of-file.
-
-The playlist and the currently-loaded track are persisted in the plugin's host
-state, so reopening a session restores everything (files whose paths no longer
-resolve are silently dropped).
-
-## Development setup
+### Tooling
 
 All dev tooling is driven by CMake targets and a checked-in git hook — no
 Python/Node frameworks required.
 
-The plugin is built with Apple Clang (standard for the macOS AU flow);
-`clang-format` and `clang-tidy` come from Homebrew's keg-only `llvm`, which
-the CMake targets and git hook locate automatically.
+The plugin is built with Apple Clang (standard for the macOS AU flow).
+`clang-format` and `clang-tidy` come from Homebrew's keg-only `llvm`, which the
+CMake targets and git hook locate automatically.
 
-### One-time setup after cloning
+One-time setup after cloning:
 
 ```bash
 brew install llvm gh                        # clang-format, clang-tidy, GitHub CLI
@@ -141,8 +143,6 @@ git config core.hooksPath .githooks         # activate the checked-in hook
 The pre-commit hook ([.githooks/pre-commit](.githooks/pre-commit)) runs
 `clang-format --dry-run` against staged C/C++ files and blocks the commit if
 anything would be reformatted. Bypass with `git commit --no-verify`.
-
-### Available CMake targets
 
 | Target          | What it does                                              |
 | --------------- | --------------------------------------------------------- |
