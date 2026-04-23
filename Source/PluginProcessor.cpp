@@ -10,7 +10,10 @@ SimpleAudioPlayerProcessor::SimpleAudioPlayerProcessor()
   // The read-ahead thread lives for the lifetime of the processor — starting
   // and stopping it per track would add latency on every track change and
   // offers no benefit, since there's only ever one reader source attached.
-  readAheadThread.startThread();
+  // Elevated priority so the thread can keep the buffer filled even when the
+  // host (e.g. Logic with a small I/O buffer and heavy plugin load) is
+  // aggressively scheduling its realtime audio graph.
+  readAheadThread.startThread(juce::Thread::Priority::high);
 }
 
 SimpleAudioPlayerProcessor::~SimpleAudioPlayerProcessor() {
@@ -199,9 +202,11 @@ void SimpleAudioPlayerProcessor::loadIntoTransport(int index, bool andPlay) {
   const double readerSampleRate = reader->sampleRate;
   auto newSource = std::make_unique<juce::AudioFormatReaderSource>(reader.release(), true);
 
-  // ~0.75 s of read-ahead at 44.1 kHz. Gives the background thread plenty of
-  // runway to re-fill the buffer around seeks without burning memory.
-  constexpr int kReadAheadSamples = 32768;
+  // ~3 s of read-ahead at 44.1 kHz. Generous runway so transient scheduling
+  // or disk hiccups (common in plugin hosts with small I/O buffers and lots
+  // of other I/O in flight) don't underrun the buffer and cause clicks.
+  // Costs ~1 MB per stereo float source — negligible.
+  constexpr int kReadAheadSamples = 131072;
   transport.setSource(newSource.get(), kReadAheadSamples, &readAheadThread, readerSampleRate);
 
   readerSource = std::move(newSource);
